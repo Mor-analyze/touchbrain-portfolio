@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}Sessions — TouchBrain{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-header">
+        <h2>Sessions</h2>
+        <p>{{ sessions|length }} total sessions</p>
+    </div>
+    {% if session.get('user_role') == 'admin' %}
+<button class="btn btn-primary"
+    onclick="openModal('add-session-modal')">
+    + New session
+</button>
+{% endif %}
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient</th><th>Doctor(s)</th><th>Treatment</th>
+                    <th>Date & time</th><th>Cost</th><th>Notes</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessions %}
+                <tr>
+                    <td><strong>{{ s.patient.name if s.patient else '—' }}</strong></td>
+                    <td>{{ s.doctors|map(attribute='name')|join(', ') or '—' }}</td>
+                    <td>{{ s.treatment.name if s.treatment else '—' }}</td>
+                    <td>{{ s.date_time.strftime('%b %d, %Y %I:%M %p') if s.date_time else '—' }}</td>
+                    <td>{{ '$%.2f' % s.cost if s.cost else '—' }}</td>
+                    <td>{{ s.notes[:30] + '...' if s.notes and s.notes|length > 30 else s.notes or '—' }}</td>
+                    <td style="display:flex;gap:6px">
+                        {% if session.get('user_role') == 'admin' %}
+
+                    <button class="btn btn-secondary btn-sm edit-session-btn"
+                        data-id="{{ s.session_id }}"
+                        data-patient="{{ s.patient_id }}"
+                        data-treatment="{{ s.treatment_id }}"
+                        data-datetime="{{ s.date_time.strftime('%Y-%m-%dT%H:%M') if s.date_time else '' }}"
+                        data-cost="{{ s.cost or '' }}"
+                        data-discount="{{ s.discount or 0 }}"
+                        data-notes="{{ s.notes or '' }}"
+                        data-doctors="[{{ s.doctors|map(attribute='doctor_id')|join(',') }}]">
+                        Edit
+                    </button>
+                     {% endif %}
+                    {% if session.get('user_role') == 'admin' %}
+                    <form method="POST"
+                        action="/sessions/delete/{{ s.session_id }}"
+                        onsubmit="return confirm('Delete this session?')">
+                        <button type="submit"
+                            class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" style="text-align:center;color:#aaa;padding:24px">No sessions yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Session Modal -->
+<div class="modal-overlay" id="add-session-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('add-session-modal')">&times;</button>
+        <h3>New session</h3>
+        <form method="POST" action="/sessions/add">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Patient *</label>
+                    <select name="patient_id" required>
+                        <option value="">Select patient</option>
+                        {% for p in patients %}
+                        <option value="{{ p.patient_id }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Treatment *</label>
+                    <select name="treatment_id" required>
+                        <option value="">Select treatment</option>
+                        {% for t in treatments %}
+                        <option value="{{ t.treatment_id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date & time *</label>
+                    <input type="datetime-local" name="date_time" required>
+                </div>
+                <div class="form-group">
+                    <label>Cost</label>
+                    <input type="number" name="cost" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                <label>Discount</label>
+                <input type="number" name="discount" step="0.01" min="0" value="0">
+                </div>
+                    <div class="form-group full">
+                        <label>Therapists (hold Ctrl to select multiple)</label>
+                        <select name="therapist_ids" multiple style="min-height:90px">
+                            {% for t in therapists %}
+                            <option value="{{ t.doctor_id }}">{{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea name="notes"></textarea>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Save session</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('add-session-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Session Modal -->
+<div class="modal-overlay" id="edit-session-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('edit-session-modal')">&times;</button>
+        <h3>Edit session</h3>
+        <form method="POST" action="" id="edit-session-form">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Patient *</label>
+                    <select name="patient_id" id="edit-patient-id" required>
+                        {% for p in patients %}
+                        <option value="{{ p.patient_id }}">{{ p.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Treatment *</label>
+                    <select name="treatment_id" id="edit-treatment-id" required>
+                        {% for t in treatments %}
+                        <option value="{{ t.treatment_id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date & time *</label>
+                    <input type="datetime-local" name="date_time" id="edit-date-time" required>
+                </div>
+                <div class="form-group">
+                    <label>Cost</label>
+                    <input type="number" name="cost" id="edit-cost" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                <label>Discount</label>
+                <input type="number" name="discount" id="edit-discount" step="0.01" min="0">
+                </div>
+                <div class="form-group full">
+                    <label>Therapists (hold Ctrl to select multiple)</label>
+                    <select name="therapist_ids" id="edit-therapist-ids" multiple style="min-height:90px">
+                        {% for t in therapists %}
+                        <option value="{{ t.doctor_id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea name="notes" id="edit-notes"></textarea>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Update session</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('edit-session-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.edit-session-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var id = this.dataset.id;
+        var patientId = this.dataset.patient;
+        var treatmentId = this.dataset.treatment;
+        var dateTime = this.dataset.datetime;
+        var cost = this.dataset.cost;
+        var discount = this.dataset.discount;
+        var notes = this.dataset.notes;
+        var doctorIds = JSON.parse(this.dataset.doctors || '[]');
+
+        document.getElementById('edit-patient-id').value = patientId;
+        document.getElementById('edit-treatment-id').value = treatmentId;
+        document.getElementById('edit-date-time').value = dateTime;
+        document.getElementById('edit-cost').value = cost;
+        document.getElementById('edit-discount').value = discount;
+        document.getElementById('edit-notes').value = notes;
+
+        var therapistSelect = document.getElementById('edit-therapist-ids');
+        Array.from(therapistSelect.options).forEach(function(opt) {
+            opt.selected = doctorIds.includes(parseInt(opt.value));
+        });
+
+        document.getElementById('edit-session-form').action = '/sessions/edit/' + id;
+        openModal('edit-session-modal');
+    });
+});
+</script>
+{% endblock %}

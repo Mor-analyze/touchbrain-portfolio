@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Expenses — TouchBrain{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-header">
+        <h2>Expenses</h2>
+        <p>Clinic operating costs</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-cost-modal')">+ Add expense</button>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Description</th><th>Category</th><th>Amount</th><th>Date</th><th></th></tr>
+            </thead>
+            <tbody>
+                {% for c in costs %}
+                <tr>
+                    <td>{{ c.description or '—' }}</td>
+                    <td>
+                        <span class="badge badge-amber">
+                            {{ c.category.name if c.category else '—' }}
+                        </span>
+                    </td>
+                    <td><strong>${{ '%.2f' % c.amount }}</strong></td>
+                    <td>{{ c.date.strftime('%b %d, %Y') if c.date else '—' }}</td>
+                    <td style="display:flex;gap:6px">
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="editCost(
+                                {{ c.cost_id }},
+                                '{{ c.description or '' }}',
+                                {{ c.cost_category_id }},
+                                '{{ c.amount }}',
+                                '{{ c.date }}'
+                            )">Edit</button>
+                        <form method="POST" action="/costs/delete/{{ c.cost_id }}"
+                            onsubmit="return confirm('Delete this expense?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align:center;color:#aaa;padding:24px">
+                        No expenses yet
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Cost Modal -->
+<div class="modal-overlay" id="add-cost-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('add-cost-modal')">&times;</button>
+        <h3>Add expense</h3>
+        <form method="POST" action="/costs/add">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Description</label>
+                    <input type="text" name="description" placeholder="e.g. April rent">
+                </div>
+                <div class="form-group">
+                    <label>Category *</label>
+                    <select name="cost_category_id" required>
+                        <option value="">Select category</option>
+                        {% for c in categories %}
+                        <option value="{{ c.cost_category_id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <input type="number" name="amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" name="date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Save expense</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('add-cost-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Cost Modal -->
+<div class="modal-overlay" id="edit-cost-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('edit-cost-modal')">&times;</button>
+        <h3>Edit expense</h3>
+        <form method="POST" action="" id="edit-cost-form">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Description</label>
+                    <input type="text" name="description" id="edit-cost-desc">
+                </div>
+                <div class="form-group">
+                    <label>Category *</label>
+                    <select name="cost_category_id" id="edit-cost-cat" required>
+                        {% for c in categories %}
+                        <option value="{{ c.cost_category_id }}">{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <input type="number" name="amount" id="edit-cost-amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" name="date" id="edit-cost-date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Update expense</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('edit-cost-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editCost(id, desc, catId, amount, date) {
+    document.getElementById('edit-cost-desc').value = desc;
+    document.getElementById('edit-cost-cat').value = catId;
+    document.getElementById('edit-cost-amount').value = amount;
+    document.getElementById('edit-cost-date').value = date;
+    document.getElementById('edit-cost-form').action = '/costs/edit/' + id;
+    openModal('edit-cost-modal');
+}
+</script>
+{% endblock %}

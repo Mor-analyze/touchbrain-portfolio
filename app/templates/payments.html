@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Payments — TouchBrain{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-header">
+        <h2>Payments</h2>
+        <p>{{ payments|length }} total payments</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-payment-modal')">+ Record payment</button>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient</th><th>Session date</th><th>Amount</th>
+                    <th>Type</th><th>Date paid</th><th>Session balance</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td>
+                        {% if p.session and p.session.patient %}
+                            <strong>{{ p.session.patient.name }}</strong>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td>
+                        {{ p.session.date_time.strftime('%b %d, %Y')
+                           if p.session and p.session.date_time else '—' }}
+                    </td>
+                    <td><strong>${{ '%.2f' % p.amount }}</strong></td>
+                    <td>
+                        <span class="badge badge-blue">
+                            {{ p.payment_type.name if p.payment_type else '—' }}
+                        </span>
+                    </td>
+                    <td>{{ p.date.strftime('%b %d, %Y') if p.date else '—' }}</td>
+                    <td>
+                        {% if p.session %}
+                            {% set session_cost = (p.session.cost or 0)|float - (p.session.discount or 0)|float %}
+                            {% set session_paid = namespace(total=0) %}
+                            {% for pay in p.session.payments %}
+                                {% set session_paid.total = session_paid.total + (pay.amount or 0)|float %}
+                            {% endfor %}
+                            {% set bal = session_cost - session_paid.total %}
+                            <span style="color:{% if bal > 0 %}#e53e3e{% else %}#1e6e3a{% endif %}">
+                                ${{ '%.2f' % bal }}
+                            </span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td style="display:flex;gap:6px">
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="editPayment(
+                                {{ p.payment_id }},
+                                {{ p.session_id }},
+                                {{ p.payment_type_id }},
+                                '{{ p.amount }}',
+                                '{{ p.date }}'
+                            )">Edit</button>
+                        <form method="POST" action="/payments/delete/{{ p.payment_id }}"
+                            onsubmit="return confirm('Delete this payment?')">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center;color:#aaa;padding:24px">
+                        No payments yet
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Payment Modal -->
+<div class="modal-overlay" id="add-payment-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('add-payment-modal')">&times;</button>
+        <h3>Record payment</h3>
+        <form method="POST" action="/payments/add">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Session *</label>
+                    <select name="session_id" required>
+                        <option value="">Select session</option>
+                        {% for item in sessions_with_status %}
+                        <option value="{{ item.session.session_id }}">
+                            {{ item.session.patient.name if item.session.patient else '?' }} —
+                            {{ item.session.date_time.strftime('%b %d, %Y') if item.session.date_time else '?' }}
+                            — Cost: ${{ '%.2f' % (item.session.cost or 0) }}
+                            {% if item.is_paid %}✓ Paid{% else %}(Bal: ${{ '%.2f' % item.balance }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <input type="number" name="amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment type *</label>
+                    <select name="payment_type_id" required>
+                        <option value="">Select type</option>
+                        {% for t in payment_types %}
+                        <option value="{{ t.payment_type_id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" name="date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Save payment</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('add-payment-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Payment Modal -->
+<div class="modal-overlay" id="edit-payment-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('edit-payment-modal')">&times;</button>
+        <h3>Edit payment</h3>
+        <form method="POST" action="" id="edit-payment-form">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Session *</label>
+                    <select name="session_id" id="edit-pay-session" required>
+                        {% for item in sessions_with_status %}
+                        <option value="{{ item.session.session_id }}">
+                            {{ item.session.patient.name if item.session.patient else '?' }} —
+                            {{ item.session.date_time.strftime('%b %d, %Y') if item.session.date_time else '?' }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount *</label>
+                    <input type="number" name="amount" id="edit-pay-amount" step="0.01" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Payment type *</label>
+                    <select name="payment_type_id" id="edit-pay-type" required>
+                        {% for t in payment_types %}
+                        <option value="{{ t.payment_type_id }}">{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" name="date" id="edit-pay-date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Update payment</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('edit-payment-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editPayment(id, sessionId, typeId, amount, date) {
+    document.getElementById('edit-pay-session').value = sessionId;
+    document.getElementById('edit-pay-type').value = typeId;
+    document.getElementById('edit-pay-amount').value = amount;
+    document.getElementById('edit-pay-date').value = date;
+    document.getElementById('edit-payment-form').action = '/payments/edit/' + id;
+    openModal('edit-payment-modal');
+}
+</script>
+{% endblock %}

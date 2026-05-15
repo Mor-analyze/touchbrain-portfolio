@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Doctors — TouchBrain{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-header">
+        <h2>Doctors</h2>
+        <p>{{ doctors|length }} staff members</p>
+    </div>
+    {% if session.get('user_role') == 'admin' %}
+    <button class="btn btn-primary" onclick="openModal('add-doctor-modal')">+ Add doctor</button>
+    {% endif %}
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th><th>Email</th><th>Phone</th>
+                    <th>Role</th><th>Joined</th><th>Status</th>
+                    {% if session.get('user_role') == 'admin' %}<th></th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in doctors %}
+                <tr>
+                    <td><strong>{{ d.name }}</strong></td>
+                    <td>{{ d.email }}</td>
+                    <td>{{ d.phone or '—' }}</td>
+                    <td>
+                        {% if d.role == 'admin' %}
+                            <span class="badge badge-purple">Admin</span>
+                        {% else %}
+                            <span class="badge badge-blue">Doctor</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ d.join_date.strftime('%b %Y') if d.join_date else '—' }}</td>
+                    <td>
+                        {% if d.termination_date %}
+                            <span class="badge badge-red">Terminated</span>
+                        {% else %}
+                            <span class="badge badge-green">Active</span>
+                        {% endif %}
+                    </td>
+                    {% if session.get('user_role') == 'admin' %}
+                    <td>
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="editDoctor({{ d.doctor_id }}, '{{ d.name }}', '{{ d.email }}', '{{ d.phone or '' }}', '{{ d.role }}')">
+                            Edit
+                        </button>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr><td colspan="7" style="text-align:center;color:#aaa;padding:24px">No doctors yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Doctor Modal -->
+<div class="modal-overlay" id="add-doctor-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('add-doctor-modal')">&times;</button>
+        <h3>Add doctor</h3>
+        <form method="POST" action="/doctors/add">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Full name *</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone">
+                </div>
+                <div class="form-group">
+                    <label>Password *</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select name="role">
+                        <option value="doctor">Doctor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Join date</label>
+                    <input type="date" name="join_date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Save doctor</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('add-doctor-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Doctor Modal -->
+<div class="modal-overlay" id="edit-doctor-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('edit-doctor-modal')">&times;</button>
+        <h3>Edit doctor</h3>
+        <form method="POST" action="" id="edit-doctor-form">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Full name</label>
+                    <input type="text" name="name" id="edit-doc-name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" id="edit-doc-email">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" id="edit-doc-phone">
+                </div>
+                <div class="form-group">
+                    <label>New password (leave blank to keep)</label>
+                    <input type="password" name="password">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <select name="role" id="edit-doc-role">
+                        <option value="doctor">Doctor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Termination date</label>
+                    <input type="date" name="termination_date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Update doctor</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('edit-doctor-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editDoctor(id, name, email, phone, role) {
+    document.getElementById('edit-doc-name').value = name;
+    document.getElementById('edit-doc-email').value = email;
+    document.getElementById('edit-doc-phone').value = phone;
+    document.getElementById('edit-doc-role').value = role;
+    document.getElementById('edit-doctor-form').action = '/doctors/edit/' + id;
+    openModal('edit-doctor-modal');
+}
+</script>
+{% endblock %}

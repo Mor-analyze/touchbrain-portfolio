@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Patients — TouchBrain{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-header">
+        <h2>Patients</h2>
+        <p>{{ patients|length }} patients
+            {% if search %}matching "{{ search }}"{% endif %}
+        </p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+        <form method="GET" action="/patients"
+            style="display:flex;gap:8px;align-items:center">
+            <input
+                type="text"
+                name="search"
+                value="{{ search }}"
+                placeholder="Search by name or phone..."
+                style="width:220px"
+                oninput="this.form.submit()">
+            {% if search %}
+            <a href="/patients"
+               class="btn btn-secondary btn-sm">Clear</a>
+            {% endif %}
+        </form>
+        {% if session.get('user_role') == 'admin' %}
+        <button class="btn btn-primary"
+            onclick="openModal('add-patient-modal')">
+            + New patient
+        </button>
+{% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th><th>Date of birth</th><th>Phone</th>
+                    <th>Joined</th><th>Status</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in patients %}
+                <tr>
+                    <td><strong>{{ p.name }}</strong></td>
+                    <td>{{ p.dob.strftime('%b %d, %Y') if p.dob else '—' }}</td>
+                    <td>{{ p.phone or '—' }}</td>
+                    <td>{{ p.join_date.strftime('%b %Y') if p.join_date else '—' }}</td>
+                    <td>
+                        {% if p.terminated %}
+                            <span class="badge badge-red">Terminated</span>
+                        {% else %}
+                            <span class="badge badge-green">Active</span>
+                        {% endif %}
+                    </td>
+                        <td>
+                            <a href="{{ url_for('main.patient_profile', id=p.patient_id) }}"
+                               class="btn btn-secondary btn-sm">View</a>
+                     {% if session.get('user_role') == 'admin' %}
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="editPatient(...)">
+                            Edit
+                        </button>
+                        {% endif %}
+                        </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" style="text-align:center;color:#aaa;padding:24px">No patients yet</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Patient Modal -->
+<div class="modal-overlay" id="add-patient-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('add-patient-modal')">&times;</button>
+        <h3>New patient</h3>
+        <form method="POST" action="/patients/add">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Full name *</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>Date of birth *</label>
+                    <input type="date" name="dob" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone">
+                </div>
+                <div class="form-group">
+                    <label>Join date</label>
+                    <input type="date" name="join_date">
+                </div>
+                <div class="form-group">
+                    <label>Parent / guardian name</label>
+                    <input type="text" name="parent_name">
+                </div>
+                <div class="form-group full">
+                    <label>Address</label>
+                    <input type="text" name="address">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="terminated">
+                        <option value="false">Active</option>
+                        <option value="true">Terminated</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Save patient</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('add-patient-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Edit Patient Modal -->
+<div class="modal-overlay" id="edit-patient-modal">
+    <div class="modal">
+        <button class="modal-close" onclick="closeModal('edit-patient-modal')">&times;</button>
+        <h3>Edit patient</h3>
+        <form method="POST" action="" id="edit-patient-form">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Full name *</label>
+                    <input type="text" name="name" id="edit-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Date of birth</label>
+                    <input type="date" name="dob" id="edit-dob">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" id="edit-phone">
+                </div>
+                <div class="form-group full">
+                    <label>Address</label>
+                    <input type="text" name="address" id="edit-address">
+                </div>
+                <div class="form-group">
+                    <label>Parent / guardian</label>
+                    <input type="text" name="parent_name" id="edit-parent">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="terminated" id="edit-terminated">
+                        <option value="false">Active</option>
+                        <option value="true">Terminated</option>
+                    </select>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Update patient</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('edit-patient-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editPatient(id, name, dob, phone, address, parent, terminated) {
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-dob').value = dob;
+    document.getElementById('edit-phone').value = phone;
+    document.getElementById('edit-address').value = address;
+    document.getElementById('edit-parent').value = parent;
+    document.getElementById('edit-terminated').value = terminated ? 'true' : 'false';
+    document.getElementById('edit-patient-form').action = '/patients/edit/' + id;
+    openModal('edit-patient-modal');
+}
+</script>
+{% endblock %}

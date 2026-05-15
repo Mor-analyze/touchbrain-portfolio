@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Therapists — TouchBrain{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-header">
+        <h2>Therapists</h2>
+        <p>{{ therapists|length }} therapists</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal('add-therapist-modal')">
+        + Add therapist
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th><th>Email</th><th>Phone</th>
+                    <th>Joined</th><th>Status</th><th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in therapists %}
+                <tr>
+                    <td><strong>{{ t.name }}</strong></td>
+                    <td>{{ t.email or '—' }}</td>
+                    <td>{{ t.phone or '—' }}</td>
+                    <td>{{ t.join_date.strftime('%b %Y') if t.join_date else '—' }}</td>
+                    <td>
+                        {% if t.termination_date %}
+                            <span class="badge badge-red">Inactive</span>
+                        {% else %}
+                            <span class="badge badge-green">Active</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="editTherapist(
+                                {{ t.doctor_id }},
+                                '{{ t.name }}',
+                                '{{ t.email or '' }}',
+                                '{{ t.phone or '' }}'
+                            )">Edit</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6"
+                        style="text-align:center;color:#aaa;padding:24px">
+                        No therapists yet
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Therapist Modal -->
+<div class="modal-overlay" id="add-therapist-modal">
+    <div class="modal">
+        <button class="modal-close"
+            onclick="closeModal('add-therapist-modal')">&times;</button>
+        <h3>Add therapist</h3>
+        <form method="POST" action="/therapists/add">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Full name *</label>
+                    <input type="text" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone">
+                </div>
+                <div class="form-group">
+                    <label>Join date</label>
+                    <input type="date" name="join_date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Save therapist</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('add-therapist-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Therapist Modal -->
+<div class="modal-overlay" id="edit-therapist-modal">
+    <div class="modal">
+        <button class="modal-close"
+            onclick="closeModal('edit-therapist-modal')">&times;</button>
+        <h3>Edit therapist</h3>
+        <form method="POST" action="" id="edit-therapist-form">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Full name</label>
+                    <input type="text" name="name" id="edit-t-name">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" id="edit-t-email">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="text" name="phone" id="edit-t-phone">
+                </div>
+                <div class="form-group">
+                    <label>Termination date</label>
+                    <input type="date" name="termination_date">
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">Update therapist</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('edit-therapist-modal')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editTherapist(id, name, email, phone) {
+    document.getElementById('edit-t-name').value = name;
+    document.getElementById('edit-t-email').value = email;
+    document.getElementById('edit-t-phone').value = phone;
+    document.getElementById('edit-therapist-form').action = '/therapists/edit/' + id;
+    openModal('edit-therapist-modal');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Treatments — TouchBrain{% endblock %}
+
+{% block content %}
+<div class="topbar">
+    <div class="page-header">
+        <h2>Treatments</h2>
+        <p>{{ treatments|length }} treatment types</p>
+    </div>
+    <button class="btn btn-primary"
+        onclick="openModal('add-treatment-modal')">
+        + Add treatment
+    </button>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Treatment name</th>
+                    <th>Sessions using this</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in treatments %}
+                <tr>
+                    <td style="color:#aaa">{{ loop.index }}</td>
+                    <td><strong>{{ t.name }}</strong></td>
+                    <td>
+                        <span class="badge badge-green">
+                            {{ t.sessions|length }} sessions
+                        </span>
+                    </td>
+                    <td style="display:flex;gap:6px">
+                        <button class="btn btn-secondary btn-sm"
+                            onclick="editTreatment(
+                                {{ t.treatment_id }},
+                                '{{ t.name }}'
+                            )">Edit</button>
+                        {% if t.sessions|length == 0 %}
+                        <form method="POST"
+                            action="/treatments/delete/{{ t.treatment_id }}"
+                            onsubmit="return confirm('Delete {{ t.name }}?')">
+                            <button type="submit"
+                                class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                        {% else %}
+                        <button class="btn btn-secondary btn-sm"
+                            style="opacity:0.4;cursor:not-allowed"
+                            title="Cannot delete — has sessions attached">
+                            Delete
+                        </button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4"
+                        style="text-align:center;color:#aaa;padding:24px">
+                        No treatments yet
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Treatment Modal -->
+<div class="modal-overlay" id="add-treatment-modal">
+    <div class="modal">
+        <button class="modal-close"
+            onclick="closeModal('add-treatment-modal')">&times;</button>
+        <h3>Add treatment</h3>
+        <form method="POST" action="/treatments/add">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Treatment name *</label>
+                    <input type="text" name="name"
+                        placeholder="e.g. LORETTA Neurofeedback" required>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">
+                    Save treatment
+                </button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('add-treatment-modal')">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Treatment Modal -->
+<div class="modal-overlay" id="edit-treatment-modal">
+    <div class="modal">
+        <button class="modal-close"
+            onclick="closeModal('edit-treatment-modal')">&times;</button>
+        <h3>Edit treatment</h3>
+        <form method="POST" action="" id="edit-treatment-form">
+            <div class="form-grid">
+                <div class="form-group full">
+                    <label>Treatment name *</label>
+                    <input type="text" name="name"
+                        id="edit-treatment-name" required>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn btn-primary">
+                    Update treatment
+                </button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="closeModal('edit-treatment-modal')">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editTreatment(id, name) {
+    document.getElementById('edit-treatment-name').value = name;
+    document.getElementById('edit-treatment-form').action =
+        '/treatments/edit/' + id;
+    openModal('edit-treatment-modal');
+}
+</script>
+{% endblock %}

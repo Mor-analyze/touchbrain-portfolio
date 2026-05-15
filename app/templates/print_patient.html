@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ patient.name }} — TouchBrain</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 12px;
+            color: #1a1a1a;
+            padding: 32px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .no-print {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .no-print button {
+            background: #0d3b39;
+            color: #fff;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .no-print a {
+            color: #888;
+            font-size: 13px;
+            text-decoration: none;
+        }
+        .header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding-bottom: 14px;
+            border-bottom: 2px solid #0d3b39;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0d3b39;
+        }
+        .header p {
+            font-size: 11px;
+            color: #888;
+            margin-top: 3px;
+        }
+        .header-right {
+            text-align: right;
+            font-size: 11px;
+            color: #888;
+        }
+        .header-right img {
+            width: 100px;
+            display: block;
+            margin-left: auto;
+            margin-bottom: 4px;
+        }
+        .section { margin-bottom: 20px; }
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: #0d3b39;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e4ebe4;
+            margin-bottom: 10px;
+        }
+        .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+        .grid2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; }
+        .box {
+            background: #f9fbf9;
+            border: 1px solid #e4ebe4;
+            border-radius: 6px;
+            padding: 8px 10px;
+        }
+        .box-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 3px;
+        }
+        .box-value { font-size: 12px; font-weight: 500; }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .badge-green { background: #e6f2f0; color: #1a5a58; }
+        .badge-red { background: #fce8e8; color: #8b1f1f; }
+        .badge-purple { background: #f0eef8; color: #5b4ba8; }
+        .badge-gold { background: #fdf4e0; color: #7a5500; }
+        .t-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f4f0;
+            font-size: 11px;
+        }
+        .t-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: #1a5a58;
+            opacity: 0.7;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th {
+            text-align: left;
+            padding: 6px 10px;
+            background: #f5f7f5;
+            border-bottom: 1px solid #e4ebe4;
+            font-size: 10px;
+            font-weight: 700;
+            color: #888;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #f0f4f0;
+        }
+        tr:last-child td { border-bottom: none; }
+        .footer {
+            margin-top: 28px;
+            padding-top: 10px;
+            border-top: 1px solid #e4ebe4;
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: #aaa;
+        }
+        @media print {
+            .no-print { display: none; }
+            body { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="no-print">
+    <button onclick="window.print()">Print</button>
+    <a href="{{ url_for('main.patient_profile', id=patient.patient_id) }}">
+        ← Back to profile
+    </a>
+</div>
+
+<!-- Header -->
+<div class="header">
+    <div>
+        <h1>{{ patient.name }}</h1>
+        <p>Patient profile — printed {{ now }}</p>
+    </div>
+    <div class="header-right">
+        <img src="{{ url_for('static', filename='images/logo.png') }}"
+             alt="TouchBrain Logo">
+        TouchBrain Treatment App
+    </div>
+</div>
+
+<!-- Patient info -->
+<div class="section">
+    <div class="section-title">Patient information</div>
+    <div class="grid3">
+        <div class="box">
+            <div class="box-label">Status</div>
+            <div class="box-value">
+                {% if patient.terminated %}
+                <span class="badge badge-red">Terminated</span>
+                {% if patient.termination_date %}
+                <div style="font-size:11px;color:#888;margin-top:3px">
+                    {{ patient.termination_date.strftime('%b %d, %Y') }}
+                </div>
+                {% endif %}
+                {% else %}
+                <span class="badge badge-green">Active</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="box">
+            <div class="box-label">Date of birth</div>
+            <div class="box-value">
+                {{ patient.dob.strftime('%b %d, %Y') if patient.dob else '—' }}
+            </div>
+        </div>
+        <div class="box">
+            <div class="box-label">Joined</div>
+            <div class="box-value">
+                {{ patient.join_date.strftime('%b %d, %Y') if patient.join_date else '—' }}
+            </div>
+        </div>
+        <div class="box">
+            <div class="box-label">Phone</div>
+            <div class="box-value">{{ patient.phone or '—' }}</div>
+        </div>
+        <div class="box">
+            <div class="box-label">Address</div>
+            <div class="box-value">{{ patient.address or '—' }}</div>
+        </div>
+        <div class="box">
+            <div class="box-label">Parent / guardian</div>
+            <div class="box-value">{{ patient.parent_name or '—' }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Assessments -->
+<div class="section">
+    <div class="section-title">Assessments</div>
+    <div class="grid2">
+        <div class="box">
+            <div class="box-label">Brainmap</div>
+            <div class="box-value">
+                {% if brainmap %}
+                <span class="badge badge-purple">Done</span>
+                <span style="font-size:11px;color:#555;margin-left:6px">
+                    {{ brainmap.date.strftime('%b %d, %Y') if brainmap.date else '' }}
+                </span>
+                {% if brainmap.notes %}
+                <div style="font-size:11px;color:#888;margin-top:4px">
+                    {{ brainmap.notes }}
+                </div>
+                {% endif %}
+                {% else %}
+                <span style="color:#aaa">Not done yet</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="box">
+            <div class="box-label">Remaps ({{ remaps|length }})</div>
+            <div class="box-value">
+                {% if remaps %}
+                {% for r in remaps %}
+                <div style="margin-bottom:4px">
+                    <span class="badge badge-gold">Remap {{ loop.index }}</span>
+                    <span style="font-size:11px;color:#555;margin-left:6px">
+                        {{ r.date.strftime('%b %d, %Y') if r.date else '—' }}
+                    </span>
+                    {% if r.notes %}
+                    <div style="font-size:11px;color:#888;margin-top:2px">
+                        {{ r.notes }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <span style="color:#aaa">No remaps yet</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Treatment summary -->
+<div class="section">
+    <div class="section-title">Treatment summary</div>
+    <div class="box">
+        {% if treatment_counts %}
+        {% for treatment, count in treatment_counts.items() %}
+        <div class="t-row">
+            <span>{{ treatment }}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+                <div class="t-bar"
+                     style="width:{{ [count * 15, 100]|min }}px"></div>
+                <strong style="min-width:16px;text-align:right">
+                    {{ count }}
+                </strong>
+            </div>
+        </div>
+        {% endfor %}
+        <div style="margin-top:8px;padding-top:6px;border-top:1px solid #e4ebe4;
+                    display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:#888">Total sessions</span>
+            <strong>{{ sessions|length }}</strong>
+        </div>
+        {% else %}
+        <div style="color:#aaa;font-size:12px;padding:8px 0">No sessions yet</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Session history -->
+<div class="section">
+    <div class="section-title">Session history</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Date & time</th>
+                <th>Treatment</th>
+                <th>Therapist(s)</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in sessions %}
+            <tr>
+                <td>
+                    {{ s.date_time.strftime('%b %d, %Y %I:%M %p')
+                       if s.date_time else '—' }}
+                </td>
+                <td>{{ s.treatment.name if s.treatment else '—' }}</td>
+                <td>
+                    {{ s.doctors|map(attribute='name')|join(', ') or '—' }}
+                </td>
+                <td>
+                    {{ s.notes[:60] + '...'
+                       if s.notes and s.notes|length > 60
+                       else s.notes or '—' }}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4"
+                    style="text-align:center;color:#aaa;padding:16px">
+                    No sessions yet
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+    <span>TouchBrain Treatment App — Confidential</span>
+    <span>Printed on {{ now }}</span>
+</div>
+
+</body>
+</html>
