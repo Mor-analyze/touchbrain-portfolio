@@ -1,7 +1,5 @@
 
 import os
-print("=== DATABASE_URL ===", os.environ.get('DATABASE_URL', 'NOT SET'))
-print("=== FLASK_APP ===", os.environ.get('FLASK_APP', 'NOT SET'))
 
 from dotenv import load_dotenv
 load_dotenv()
